@@ -1,0 +1,260 @@
+<!--Bubble®是由©DCT团队开发，版权所有，侵权必究-->
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Bubble</title>
+    <style>
+body,
+        html{
+            width: 765px;
+            height: 305px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #gameContainer {
+            position:absolute;
+            top:20px;
+            width: 750px;
+            height: 320px;
+            border-radius: 10px;
+            background-color: #fff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #007bff;
+            cursor: pointer;
+        }
+
+        #score {
+            position:relative;
+            top:20px;
+            left:20px;
+            font-size:18px;
+            font-weight:bold;
+        }
+
+        #storeButton {
+            padding: 10px 20px;
+            margin-bottom: 200px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            position:absolute;
+            top:20px;
+            left:670px;
+            font-weight:bold;
+        }
+
+        #store {
+            width:320px;
+            height:200px;
+            position: absolute;
+            top: 10px;
+            left: 350px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .store-item {
+            margin-bottom: 15px;
+            margin-top:10px;
+            margin-left:0px;
+            font-weight:bold;
+            text-align:center;
+        }
+
+        .store-item button {
+            padding: 5px 5px;
+            margin-right: 45px;
+            border: none;
+            border-radius: 5px;
+            background-color: #dc3545;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="gameContainer">
+        <div id="score">得分: 0</div>
+        <button id="storeButton">商店</button>
+        <div id="store">
+            <div class="store-item">
+                <span>自动点击器 (持续 120 秒) - 15000 分</span>
+                <button id="autoClickerPurchase">购买</button>
+            </div>
+            <div class="store-item">
+                <span>特殊泡泡 (点击得 50000 分) - 5000 分</span>
+                <button id="specialBubblePurchase">购买</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        const difficultyIncreaseRate = 0.01;
+        const maxGameDifficulty = 20;
+        const bubbleCreationInterval = 500;
+        const gameContainer = document.getElementById('gameContainer');
+        const scoreDisplay = document.getElementById('score');
+        const storeButton = document.getElementById('storeButton');
+        const store = document.getElementById('store');
+        let autoClickerActive = false;
+
+        // 泡泡类型和属性
+        const bubbleTypes = {
+            'default': { color: 'blue', probability: 0.99, score: 1 },
+            'a': { color: 'green', probability: 0.05, score: 2 },
+            'b': { color: 'yellow', probability: 0.05, score: 3 },
+            'c': { color: 'pink', probability: 0.025, score: 4 },
+            'd': { color: 'orange', probability: 0.0125, score: 5 },
+            'e': { color: 'gray', probability: 0.00625, score: 6 },
+            'f': { color: 'red', probability: 0.003125, score: 8 },
+            'zzzzzzzzzz': { color: '#000000', probability: 0.00000000001, score: 1000 },
+        };
+
+        // 更新得分函数
+        function updateScore(scoreChange) {
+            score += scoreChange;
+            scoreDisplay.textContent = '得分: ' + score;
+        }
+
+        // 随机选择泡泡类型的函数
+        function getRandomBubbleType() {
+            const totalProbability = Object.values(bubbleTypes).reduce((acc, type) => acc + type.probability, 0);
+            let random = Math.random() * totalProbability;
+            for (const type in bubbleTypes) {
+                if (random < bubbleTypes[type].probability) {
+                    return type;
+                }
+                random -= bubbleTypes[type].probability;
+            }
+            return 'default'; // 默认返回 'default' 类型
+        }
+
+        // 创建泡泡函数
+        function createBubble() {
+            const minSize = 10; // 最小泡泡大小
+            const maxSize = 45; // 最大泡泡大小
+            const size = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
+            const type = getRandomBubbleType();
+            const bubbleProperties = {
+                ...bubbleTypes[type],
+                size: size,
+                score: size * bubbleTypes[type].score // 泡泡分数与大小和类型相关
+            };
+
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            bubble.style.width = bubbleProperties.size + 'px';
+            bubble.style.height = bubbleProperties.size + 'px';
+            bubble.style.backgroundColor = bubbleProperties.color;
+            bubble.style.left = Math.random() * (gameContainer.offsetWidth - bubbleProperties.size) + 'px';
+            bubble.style.top = Math.random() * (gameContainer.offsetHeight - bubbleProperties.size) + 'px';
+            bubble.dataset.score = bubbleProperties.score; // 存储泡泡分数
+
+            gameContainer.appendChild(bubble);
+
+            bubble.addEventListener('click', function () {
+                updateScore(bubbleProperties.score);
+                bubble.remove();
+            });
+
+            setTimeout(() => {
+                bubble.remove();
+            }, 5000); // 5秒后自动移除泡泡
+        }
+
+        // 释放多个小泡泡函数
+        function spawnMultipleBubbles() {
+            for (let i = 0; i < 5; i++) {
+                createBubble('default'); // 这里调用createBubble函数，并指定创建默认泡泡
+            }
+        }
+
+        // 购买项目函数
+        function purchaseItem(cost, itemType) {
+            if (score >= cost) {
+                updateScore(-cost);
+                if (itemType === 'autoClicker') {
+                    startAutoClicker();
+                } else if (itemType === 'specialBubble') {
+                    createBubble('special');
+                }
+                alert('购买成功！');
+            } else {
+                alert('积分不足！');
+            }
+        }
+
+        // 初始化商店按钮
+        storeButton.addEventListener('click', function () {
+            store.style.display = store.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // 游戏循环
+        setInterval(() => createBubble(), bubbleCreationInterval);
+
+        // 绑定购买按钮的事件监听器
+        document.getElementById('autoClickerPurchase').addEventListener('click', function () {
+            purchaseItem(15000, 'autoClicker');
+        });
+
+        document.getElementById('specialBubblePurchase').addEventListener('click', function () {
+            purchaseItem(500, 'specialBubble');
+        });
+
+        // 游戏容器点击事件
+        gameContainer.addEventListener('click', function (event) {
+            const clickedElement = event.target;
+            if (clickedElement.classList.contains('bubble') && !autoClickerActive) {
+                updateScore(parseInt(clickedElement.dataset.score, 10));
+                clickedElement.remove();
+            }
+        });
+
+        // 自动点击器函数
+        function startAutoClicker() {
+            if (autoClickerActive) return; // 如果自动点击器已激活，则不重复激活
+            autoClickerActive = true;
+            const autoClickerDuration = 120000; // 持续时间为 120 秒
+            autoClickerInterval = setInterval(() => {
+                const bubbles = document.querySelectorAll('.bubble:not(.processing)');
+                const bubble = bubbles[Math.floor(Math.random() * bubbles.length)];
+                if (bubble) {
+                    bubble.classList.add('processing'); // 标记为正在处理，避免重复点击
+                    updateScore(parseInt(bubble.dataset.score, 10));
+                    setTimeout(() => {
+                        bubble.classList.remove('processing');
+                        bubble.remove();
+                    }, 50); // 延迟移除泡泡
+                }
+            }, 5); // 每5毫秒自动点击一次泡泡
+
+            setTimeout(() => {
+                clearInterval(autoClickerInterval);
+                autoClickerActive = false;
+            }, autoClickerDuration);
+        }
+    </script>
+</body>
+
+</html>
